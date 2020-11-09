@@ -1,6 +1,3 @@
-import uuid
-
-
 class Room:
     def __init__(self, room_id, name, state, players, host):
         self.id = room_id
@@ -20,9 +17,9 @@ class Room:
         return room_as_dict
 
     def __str__(self):
-        players_in_room = [player.name for player in self.players]
+        players_in_room = [player.username for player in self.players]
         return (f"Room name: {self.name}\n"
                 f"Room state: {self.state}\n"
                 f"Players: {players_in_room}\n"
-                f"Host: {self.host.name}\n")
+                f"Host: {self.host.username}\n")
 
