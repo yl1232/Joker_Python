@@ -5,6 +5,7 @@ from Model.RoomState import RoomState
 from Server.Database.DBMethods import DBMethods
 from Server.APIs.AuthenticationAPI import token_required
 import uuid
+from Common.RoomsAPIErrors import RoomsAPIErrors
 
 rooms_api = Blueprint('rooms_api', __name__)
 
@@ -24,9 +25,13 @@ def get_rooms(current_player):
 @rooms_api.route("/rooms/<room_name>", methods=['GET'])
 @token_required
 def get_room(current_player, room_name):
-    room_details = DBMethods.get_room_details_from_db(room_name)
-    room_as_object = create_room_object_from_dict(room_details)
-    return jsonify(room_as_object.to_dict())
+    room_as_dict = DBMethods.get_room_details_from_db(room_name)
+    if room_as_dict is None:
+        room_as_dict = {}
+        return jsonify(room_as_dict)
+    else:
+        room_as_object = create_room_object_from_dict(room_as_dict)
+        return jsonify(room_as_object.to_dict())
 
 
 @rooms_api.route("/rooms", methods=['POST'])
@@ -35,9 +40,9 @@ def host_room(current_player):
     data = request.json
     room_name = data['room_name']
     if DBMethods.check_if_room_with_same_name_already_exists(room_name):
-        return "There is already a room with this name"
+        return RoomsAPIErrors.ROOM_NAME_OCCUPIED.value
     if DBMethods.check_if_player_already_in_a_room(current_player.username):
-        return "You are already in one of the rooms"
+        return RoomsAPIErrors.PLAYER_ALREADY_IN_A_ROOM.value
     room_id = str(uuid.uuid4())
     room = Room(room_id, room_name, RoomState.WAITING.value, [current_player], current_player)
     DBMethods.add_room_to_db(room)
@@ -50,15 +55,15 @@ def host_room(current_player):
 def join_room(current_player, room_name):
     room_name_from_player_input = room_name
     if DBMethods.check_if_player_already_in_a_room(current_player.username):
-        return "You are already in one of the rooms"
+        return RoomsAPIErrors.PLAYER_ALREADY_IN_A_ROOM.value
     rooms = get_available_rooms_as_objects()
     for room in rooms:
         if room.name == room_name_from_player_input:
             if room.state == RoomState.PLAYING.value:
-                return "You can't join the room as there's a game being played there"
+                return RoomsAPIErrors.ROOM_IN_PLAYING_STATE.value
             DBMethods.update_player_linked_room_in_db(current_player.username, room.id)
             return f"You have successfully joined room {room_name_from_player_input}"
-    return f"There's no room named {room_name_from_player_input}"
+    return RoomsAPIErrors.ROOM_NAME_DOESNT_EXIST.value
 
 
 # @rooms_api.route("/rooms/<room_name>", methods=['PUT'])
@@ -73,6 +78,7 @@ def join_room(current_player, room_name):
 
 def get_available_rooms_as_objects():
     rooms_as_dicts = DBMethods.get_available_rooms_from_db()
+    print(rooms_as_dicts)
     rooms_as_objects = []
     for room_as_dict in rooms_as_dicts:
         room_as_object = create_room_object_from_dict(room_as_dict)

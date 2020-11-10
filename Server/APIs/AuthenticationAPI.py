@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, make_response, Blueprint, current_app
+from flask import request, jsonify, Blueprint, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 import jwt
@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from Model.Player import Player
 from Server.Database.DBMethods import DBMethods
+from Common.AuthenticationErrors import AuthenticationErrors
 
 
 authentication_api = Blueprint('authentication_api', __name__)
@@ -36,29 +37,17 @@ def login():
     username = data['username']
     password = data['password']
     if not data or not username or not password:
-        return make_response(
-            'Could not verify',
-            401,
-            {'WWW-Authenticate': 'Basic realm ="Login required !!"'}
-        )
+        return AuthenticationErrors.MISSING_LOGIN_DETAILS.value
     player = Player.create_object_from_details_in_db(username)
     if not player:
-        return make_response(
-            'Could not verify',
-            401,
-            {'WWW-Authenticate': 'Basic realm ="User does not exist !!"'}
-        )
+        return AuthenticationErrors.USERNAME_DOESNT_EXIST.value
     if check_password_hash(player.password, password):
         token = jwt.encode({
             'username': player.username,
             'exp': datetime.utcnow() + timedelta(minutes=60)
         }, current_app.config['SECRET_KEY'])
         return jsonify({'token': token.decode('UTF-8')})
-    return make_response(
-        'Could not verify',
-        403,
-        {'WWW-Authenticate': 'Basic realm ="Wrong Password !!"'}
-    )
+    return AuthenticationErrors.WRONG_PASSWORD.value
 
 
 @authentication_api.route("/register", methods=['POST'])
@@ -70,6 +59,6 @@ def register():
         player_id = str(uuid.uuid4())
         player = Player(player_id, username, generate_password_hash(password))
         DBMethods.add_new_player_to_db(player)
-        return make_response('Successfully registered.', 201)
+        return "You have successfully registered"
     else:
-        return make_response('User already exists. Please Log in.', 202)
+        return AuthenticationErrors.USERNAME_ALREADY_EXIST.value
