@@ -6,3 +6,4 @@ class RoomsAPIErrors(enum.Enum):
     PLAYER_ALREADY_IN_A_ROOM = "You are already in one of the rooms"
     ROOM_IN_PLAYING_STATE = "You can't join the room as there's a game being played there"
     ROOM_NAME_DOESNT_EXIST = "The room name you have entered doesn't exist"
+    PLAYER_NOT_IN_THE_ROOM = "You are not in the room"

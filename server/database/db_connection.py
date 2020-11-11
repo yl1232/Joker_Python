@@ -19,8 +19,7 @@ class DBConnection:
 
     @classmethod
     def connect(cls):
-        db_connection = sqlite3.connect(
-            "C:\\Users\\yl1232\\PycharmProjects\\Joker_Python\\Server\\Database\\database.db")
+        db_connection = sqlite3.connect("C:\\Users\\yl1232\\PycharmProjects\\Joker_Python\\server\\database\\database.db")
         db_connection.row_factory = cls.row_tuple_to_dict
         return db_connection
 
